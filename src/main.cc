@@ -22,19 +22,25 @@ void mainDlgInit(HWND hwnd, cch* file)
 	loadFile(hwnd, file);
 	
 	s_hList = GetDlgItem(hwnd, IDC_LIST1);
-	lstView_insColumn(s_hList, 0, 78, "Name");
-	lstView_insColumn(s_hList, 1, 78, "Value");
+	lstView_insColumn(s_hList, 0, 170, "Name");
+	lstView_insColumn(s_hList, 1, 100, "Eval");
+	lstView_insColumn(s_hList, 2, 78, "Raw");
+	ListView_SetColumnWidth(s_hList, 2, LVSCW_AUTOSIZE_USEHEADER);
 }
 
 void listViewInit(HWND hwnd, xarray<DefList::Def> lst)
 {
+	SetWindowRedraw(s_hList, FALSE);
 	ListView_DeleteAllItems(s_hList);
+	ListView_SetItemCount(s_hList, lst.len);
+	
 	for(auto& x : lst) {
 		int i = lstView_iosText(s_hList, -1, x.name);
-		lstView_iosText(s_hList, i, 1, x.value);
+		lstView_iosText(s_hList, i, 1, x.eval);
+		lstView_iosText(s_hList, i, 2, x.value);
 	}
-	
-	lstView_autoSize(s_hList);
+
+	SetWindowRedraw(s_hList, TRUE);
 }
 
 
