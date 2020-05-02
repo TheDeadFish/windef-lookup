@@ -7,24 +7,30 @@ void DefList::close() { pRst(this); }
 static
 int compar(const DefList::Def& a, const DefList::Def& b) {
 	return stricmp(a.name, b.name); }
+	
+	
+
+	
 
 int DefList::load(cch* file)
 {
+	// load input file
 	close();
-
-	// load the input file
-	int nLines;
-	char** lines = loadText(file, nLines);
-	if(!lines) return 1;
-	data.init(lines[0]);
-	SCOPE_EXIT(free(lines));
+	data.init(loadText(file).data);
+	if(!data) return 1;
 	
-	// parse the input file 
-	for(int i = 0; i < nLines; i++) {
-		char* space = strchr(lines[i], ' ');
-		if(space) defLst.push_back(lines[i], space+1);
-	} qsort(defLst.data, defLst.len, compar);
+	// parse input file
+	for(char* pos = data; *pos;)
+	{
+		cch* name = pos; pos += strlen(pos)+1;
+		cch* val = pos; pos += strlen(pos)+1;
+		cch* eval = pos; pos += strlen(pos)+1;
+		if(*eval == 0) return 2;
+		defLst.push_back(name, val, eval);
+		if(*pos == '\n') pos++;
+	}
 	
+	qsort(defLst.data, defLst.len, compar);
 	return 0;
 };
 
