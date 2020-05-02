@@ -71,7 +71,7 @@ def strip_brace(str):
 	
 
 def getLines(s):
-	return [x.rstrip() for x in s.splitlines()]
+	return [x.strip() for x in s.splitlines()]
 	
 def execute_cpp(str, args):
 	proc = Popen('cpp '+args, stdin=PIPE, stdout=PIPE,
@@ -103,29 +103,55 @@ def getMacroList(mList, defFile):
 		mList.append([tok[1], tok[2], None])
 	return mStr;
 	
-def evalMacro(makeFile, x):
+def evalMacro(x):
 	# skip non-number
-	if x[1] == x[2]: return
+	if x[1] == x[2]: return False
 	x[2] = strip_brace(x[2])
-	if is_string(x[2]): return;
-	if is_ident(x[2]): return;
-	if is_brinit(x[2]): return
+	if is_string(x[2]): return False;
+	if is_ident(x[2]): return False;
+	if is_brinit(x[2]): return False
 	if x[2].find('__attribute__') >= 0:
 		return;
 	
 	# handle number
-	if is_number(x[2]): return;
+	if is_number(x[2]): return  False;
 	if x[2][-1] == 'l':
 		if is_number(x[2][:-1]):
 			x[2] = x[2][:-1]
-			return
+			return False
 	
 	# preduce source file
 	print x[0]
 	with open('R:/tmpdef/%s.cc' % (x[0]), 'w') as f:
 		f.write('#include "tmpdef.h"\n')
 		f.write("void test() { get_value(%s); }" % (x[2]));
-	makeFile.write('%s.cc\n' % (x[0]))
+	return True
+		
+def evalAsmParse2(str, push, call):
+	print str, push, call
+	return None
+	
+def evalAsmParse(name):
+	# open asm file
+	dir=build_base+'tmpdef/build/CMakeFiles/tmpdef.dir/'
+	lines = []
+	try:
+		with open(dir+name, 'r') as f:
+			lines = getLines(f.read())
+	except: pass
+
+	# parse asm file
+	str = None;	push = []
+	for line in lines:
+		if line.startswith('.ascii "'):
+			str = line[8:-1]; continue
+		if line.startswith('pushl\t'):
+			push.append(line[6:]); continue
+		if line.startswith('call\t__Z9get_value'):
+			line = line.split('@')[0][18:]
+			return evalAsmParse2(str, push, line)
+			break
+	return None
 	
 def evalBuild(mList, mStr):
 
@@ -142,12 +168,17 @@ def evalBuild(mList, mStr):
 		f.writelines(def_types);
 		
 	# generate CmakeLists.txt
+	asm_list = []
 	with open(dir+'/CmakeLists.txt', 'w') as f:
 		f.writelines(cmake_lines)
-		for x in mList: evalMacro(f, x)
+		for x in mList: 
+			if evalMacro(x):
+				asm_list.append((x, '%s.cc.obj' % (x[0])))
+				f.write('%s.cc\n' % (x[0]))
 		f.writelines(cmake_lines2)
 		
 	# build
+	"""
 	call('%CMAKE% ..', shell=True, cwd=dir+'/build')
 	with open(dir+'/build/build.ninja', 'r+') as f:
 		while True:
@@ -156,6 +187,13 @@ def evalBuild(mList, mStr):
 			f.seek(pos); f.write(line.replace('-S', '  '))
 			break
 	call('ninja -k 99999', cwd=dir+'/build')
+	"""
+	
+	# 
+	for x in asm_list: 
+		val = evalAsmParse(x[1])
+		if val != None: x[0][2] = val
+		
 	
 def cookMacroList(mList, mStr):
 	mListStr = mStr
