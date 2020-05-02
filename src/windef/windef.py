@@ -7,7 +7,7 @@ build_base = 'R:/'
 
 gcc_opts = ("-S -g0 -Os -fomit-frame-pointer -mno-accumulate-outgoing-args "
  "-mno-stack-arg-probe -mpreferred-stack-boundary=2 -fno-exceptions "
- "-fno-asynchronous-unwind-tables")
+ "-fno-asynchronous-unwind-tables -DUNICODE -D_UNICODE")
 
 def_types = [
 	'__stdcall void get_value(int);\n',
@@ -74,7 +74,7 @@ def getLines(s):
 	return [x.strip() for x in s.splitlines()]
 	
 def execute_cpp(str, args):
-	proc = Popen('cpp '+args, stdin=PIPE, stdout=PIPE,
+	proc = Popen('cpp -DUNICODE -D_UNICODE '+args, stdin=PIPE, stdout=PIPE,
 		universal_newlines=True)
 	proc.stdin.write(str);
 	lines = proc.communicate()[0]
@@ -126,10 +126,30 @@ def evalMacro(x):
 		f.write('#include "tmpdef.h"\n')
 		f.write("void test() { get_value(%s); }" % (x[2]));
 	return True
+	
+def evalAsmValue(push):
+	try:
+		iVal = long(push[0][1:]); uVal = iVal & 0xFFFFFFFF
+		hexStr = '0x%X' % (uVal)
+		if len(push) == 2: 
+			iVal = uVal | (long(push[1][1:]) << 32)
+			hexStr = '0x%X' % (iVal & 0xFFFFFFFFFFFFFFFF)
+	except: return None
+	return hexStr
 		
 def evalAsmParse2(str, push, call):
-	print str, push, call
-	return None
+	
+	int_types = {'j':'U', 'l':'l', 'm':'Ul', 'x':'LL', 'y':'ULL'}
+
+	# number type
+	if str == None:
+		val = evalAsmValue(push)
+		if val == None: return None
+		return val+int_types.get(call, '')
+		
+	# string type
+	if call != 'PKw': return str
+	return 'L"'+eval(str).replace('\0', '')+'"'
 	
 def evalAsmParse(name):
 	# open asm file
@@ -144,7 +164,7 @@ def evalAsmParse(name):
 	str = None;	push = []
 	for line in lines:
 		if line.startswith('.ascii "'):
-			str = line[8:-1]; continue
+			str = line[7:]; continue
 		if line.startswith('pushl\t'):
 			push.append(line[6:]); continue
 		if line.startswith('call\t__Z9get_value'):
@@ -177,8 +197,8 @@ def evalBuild(mList, mStr):
 				f.write('%s.cc\n' % (x[0]))
 		f.writelines(cmake_lines2)
 		
-	# build
-	"""
+	# build asm output
+	
 	call('%CMAKE% ..', shell=True, cwd=dir+'/build')
 	with open(dir+'/build/build.ninja', 'r+') as f:
 		while True:
@@ -187,9 +207,8 @@ def evalBuild(mList, mStr):
 			f.seek(pos); f.write(line.replace('-S', '  '))
 			break
 	call('ninja -k 99999', cwd=dir+'/build')
-	"""
 	
-	# 
+	# parse asm output
 	for x in asm_list: 
 		val = evalAsmParse(x[1])
 		if val != None: x[0][2] = val
@@ -208,12 +227,6 @@ mList = []
 mStr = getMacroList(mList, defFile)
 cookMacroList(mList, mStr)
 evalBuild(mList, defFile)
-
-
-
-
-"""
-for x in mList:
-	line = x[0]+'\0'+x[1]+'\0'+x[2]+'\0'
-	print line
-"""
+with open('../../bin/windef.txt', 'w') as f:
+	for x in mList:
+		f.write(x[0]+'\0'+x[1]+'\0'+x[2]+'\0\n')
