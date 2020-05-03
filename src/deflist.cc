@@ -1,5 +1,6 @@
 #include <stdshit.h>
 #include "deflist.h"
+#include "util.h"
 
 DefList::~DefList() {}
 void DefList::close() { pRst(this); }
@@ -42,7 +43,7 @@ int findFn(cch* pkey, const DefList::Def& elem) {
 xarray<DefList::Def> DefList::find(cch* prefix)
 {
 	// find matching string
-	if(isNull(prefix)) return {};
+	if(isNull(prefix)) return defLst;
 	Def* found = bsearch((void*)prefix, defLst.data, defLst.len, findFn);
 	if(!found) return {};
 	
@@ -51,4 +52,36 @@ xarray<DefList::Def> DefList::find(cch* prefix)
 	while((end < defLst.end())&&(!findFn(prefix, *end))) end++;
 	while((found > defLst.data)&&(!findFn(prefix, found[-1]))) found--;
 	return {found, end};
+}
+
+
+int DefList::Def::getVal(u64& val) const
+{
+	// get string value
+	char* end;
+	val = strtoui64(eval, &end);
+	if(end == NULL) return 0;
+	
+	// check type
+	if(toUpper(*end) == 'U') end++;
+	if(!stricmp(end, "ll")) return 2;
+	if(toUpper(*end) == 'l') end++;
+	val &= 0xFFFFFFFF; return *end ? 0 : 1;
+}
+
+bool DefList::Def::cmp(u64 num) const
+{
+	u64 val;
+	u32 type = getVal(val);
+	if(type == 0) return false;
+	if(type != 1) return num == val;
+	return u32(num) == u32(val);
+}
+
+xarray<DefList::Def> DefList::numFind(xarray<Def> in, u64 num)
+{
+	xarray<Def> ret = {};
+	for(auto& x : in) { 
+		if(x.cmp(num)) ret.push_back(x); }
+	return ret;
 }

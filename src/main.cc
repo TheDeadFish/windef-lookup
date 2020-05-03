@@ -16,7 +16,7 @@ void loadFile(HWND hwnd, cch* file)
 		contError(hwnd, "failed to load def list: %s\n", file);
 }
 
-
+void nameEdtChange(HWND hwnd);
 void mainDlgInit(HWND hwnd, cch* file)
 {
 	loadFile(hwnd, file);
@@ -26,6 +26,7 @@ void mainDlgInit(HWND hwnd, cch* file)
 	lstView_insColumn(s_hList, 1, 100, "Eval");
 	lstView_insColumn(s_hList, 2, 78, "Raw");
 	ListView_SetColumnWidth(s_hList, 2, LVSCW_AUTOSIZE_USEHEADER);
+	nameEdtChange(hwnd);
 }
 
 void listViewInit(HWND hwnd, xarray<DefList::Def> lst)
@@ -47,21 +48,31 @@ void listViewInit(HWND hwnd, xarray<DefList::Def> lst)
 
 void nameEdtChange(HWND hwnd)
 {
+	// prefix search
 	char buff[100];
 	GetDlgItemTextA(hwnd, IDC_NAME, buff, 100);
 	auto list = s_defLst.find(buff);
-	listViewInit(hwnd, list);
+
+	// get value
+	GetDlgItemTextA(hwnd, IDC_VAL, buff, 100);
+	char* end; u64 val = strtoui64(buff, &end);
+	
+	
+	// handle mask mode
+	if(IsDlgButtonChecked(hwnd, IDC_MASKMODE)) {
+	
+	
+	
+	}
+	
+	// handle number mode
+	if(end != NULL) {
+		xArray num = s_defLst.numFind(list, val);
+		listViewInit(hwnd, num);
+	} else {
+		listViewInit(hwnd, list);
+	}
 }
-
-void valEdtChange(HWND hwnd)
-{
-
-
-
-}
-
-
-
 
 BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -69,10 +80,14 @@ BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		ON_MESSAGE(WM_INITDIALOG, mainDlgInit(hwnd, (cch*)lParam))
 		CASE_COMMAND(
 			ON_COMMAND(IDCANCEL, EndDialog(hwnd, 0))
-			ON_COMMAND(IDC_NAMECLR, SetWindowTextA(sender, ""))
-			ON_COMMAND(IDC_VALCLR, SetWindowTextA(sender, ""))
+			ON_COMMAND(IDC_NAMECLR, SetDlgItemTextA(hwnd, IDC_NAME, ""))
+			ON_COMMAND(IDC_VALCLR, SetDlgItemTextA(hwnd, IDC_VAL,  ""))
+			
+			ON_COMMAND(IDC_MASKMODE, nameEdtChange(hwnd))
 			ON_CONTROL(EN_CHANGE, IDC_NAME, nameEdtChange(hwnd))
-			ON_CONTROL(EN_CHANGE, IDC_VAL, valEdtChange(hwnd))
+			ON_CONTROL(EN_CHANGE, IDC_VAL, nameEdtChange(hwnd))
+			
+			
 	  ,)
 	,)
 }	
