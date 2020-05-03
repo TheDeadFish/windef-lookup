@@ -45,6 +45,29 @@ void listViewInit(HWND hwnd, xarray<DefList::lpDef> lst)
 	SetWindowRedraw(s_hList, TRUE);
 }
 
+void compute_mask(HWND hwnd, xarray<DefList::lpDef>& num, u64 val)
+{	
+	if(s_maskDir) std::reverse(num.data, num.end());
+	auto* wrPos = num.data; 
+	for(auto* x : num) {
+		if((x->num & val)&&(!(x->num & ~val))) {
+			*wrPos = x; wrPos++; }}
+	num.setend(wrPos);
+	
+	Bstr str; u64 outVal = 0;
+	for(auto* x : num) {
+		u64 newVal = outVal|x->num;
+		if(outVal != newVal) { outVal = newVal;
+			if(str.slen) str.strcat("|");
+			str.strcat(x->name);
+		}
+	}
+	
+	if(val &= ~outVal) {
+		if(str.slen) str.strcat("|");
+		str.fmtcat("%llX", val); }
+	SetDlgItemTextA(hwnd, IDC_MASK, str);
+}
 
 
 void nameEdtChange(HWND hwnd)
@@ -60,8 +83,10 @@ void nameEdtChange(HWND hwnd)
 	
 	
 	// handle mask mode
+	SetDlgItemTextA(hwnd, IDC_MASK, "");
 	if(IsDlgButtonChecked(hwnd, IDC_MASKMODE)) {
 		xArray num = s_defLst.numGet(list);
+		compute_mask(hwnd, num, val);
 		listViewInit(hwnd, num);
 		return;
 	}

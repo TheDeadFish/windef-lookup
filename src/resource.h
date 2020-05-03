@@ -3,7 +3,7 @@
 #endif
 
 #define IDD_DIALOG1                             100
-#define IDC_VAL1                                1000
+#define IDC_MASK                                1001
 #define IDC_MASKDIR                             1002
 #define IDC_NAME                                1003
 #define IDC_NAMECLR                             1010
