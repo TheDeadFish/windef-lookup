@@ -8,6 +8,7 @@ const char progName[] = "windef-lookup";
 
 static DefList s_defLst;
 static HWND s_hList;
+static bool s_maskDir;
 
 
 void loadFile(HWND hwnd, cch* file)
@@ -60,9 +61,9 @@ void nameEdtChange(HWND hwnd)
 	
 	// handle mask mode
 	if(IsDlgButtonChecked(hwnd, IDC_MASKMODE)) {
-	
-	
-	
+		xArray num = s_defLst.numGet(list);
+		listViewInit(hwnd, num);
+		return;
 	}
 	
 	// handle number mode
@@ -74,6 +75,14 @@ void nameEdtChange(HWND hwnd)
 	}
 }
 
+void maskDirChange(HWND hwnd)
+{
+	s_maskDir = !s_maskDir;
+	LPCWSTR str = s_maskDir ? L"▼" : L"▲";
+	SetDlgItemTextW(hwnd, IDC_MASKDIR, str);
+	nameEdtChange(hwnd);
+}
+
 BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	DLGMSG_SWITCH(
@@ -82,6 +91,8 @@ BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ON_COMMAND(IDCANCEL, EndDialog(hwnd, 0))
 			ON_COMMAND(IDC_NAMECLR, SetDlgItemTextA(hwnd, IDC_NAME, ""))
 			ON_COMMAND(IDC_VALCLR, SetDlgItemTextA(hwnd, IDC_VAL,  ""))
+			ON_COMMAND(IDC_MASKDIR, maskDirChange(hwnd))
+			
 			
 			ON_COMMAND(IDC_MASKMODE, nameEdtChange(hwnd))
 			ON_CONTROL(EN_CHANGE, IDC_NAME, nameEdtChange(hwnd))

@@ -85,3 +85,22 @@ xarray<DefList::Def> DefList::numFind(xarray<Def> in, u64 num)
 		if(x.cmp(num)) ret.push_back(x); }
 	return ret;
 }
+
+static
+int compar_num(const DefList::Def& a, const DefList::Def& b) 
+{
+	u64 va, vb; a.getVal(va); b.getVal(vb);
+	int pcnt1 = __builtin_popcountll(va);
+	int pcnt2 = __builtin_popcountll(vb);
+	IFRET(pcnt1-pcnt2);
+	if(va < vb) return -1; return (va > vb);	
+}
+
+xarray<DefList::Def> DefList::numGet(xarray<Def> in)
+{
+	xarray<Def> ret = {}; u64 tmp;
+	for(auto& x : in) { 
+		if(x.getVal(tmp)) ret.push_back(x); }
+	qsort(ret.data, ret.len, compar_num); 
+	return ret;	
+}

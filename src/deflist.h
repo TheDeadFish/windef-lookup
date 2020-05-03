@@ -16,6 +16,7 @@ struct DefList
 	~DefList();
 
 	xarray<Def> numFind(xarray<Def> in, u64 num);
+	xarray<Def> numGet(xarray<Def> in);
 
 private:
 	xstr data;
