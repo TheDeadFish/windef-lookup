@@ -30,16 +30,16 @@ void mainDlgInit(HWND hwnd, cch* file)
 	nameEdtChange(hwnd);
 }
 
-void listViewInit(HWND hwnd, xarray<DefList::Def> lst)
+void listViewInit(HWND hwnd, xarray<DefList::lpDef> lst)
 {
 	SetWindowRedraw(s_hList, FALSE);
 	ListView_DeleteAllItems(s_hList);
 	ListView_SetItemCount(s_hList, lst.len);
 	
-	for(auto& x : lst) {
-		int i = lstView_iosText(s_hList, -1, x.name);
-		lstView_iosText(s_hList, i, 1, x.eval);
-		lstView_iosText(s_hList, i, 2, x.value);
+	for(auto* x : lst) {
+		int i = lstView_iosText(s_hList, -1, x->name);
+		lstView_iosText(s_hList, i, 1, x->eval);
+		lstView_iosText(s_hList, i, 2, x->value);
 	}
 
 	SetWindowRedraw(s_hList, TRUE);

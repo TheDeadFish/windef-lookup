@@ -4,22 +4,25 @@ struct DefList
 {
 	struct Val { s64 value; bool x64; };
 	struct Def { cch* name; cch* value; cch* eval; 
-		int getVal(u64& val) const; 
-		bool cmp(u64 num) const;};
-		
-		
+		char type; char pcnt; u64 num; void init(void);		
+		bool cmp(u64 num) const; 
+	};
+	
+	typedef Def* lpDef;
 	
 	int load(cch* file);
 	void close();
-	xarray<Def> find(cch* prefix);
+	xarray<lpDef> find(cch* prefix);
 	
 	~DefList();
+	
+	
 
-	xarray<Def> numFind(xarray<Def> in, u64 num);
-	xarray<Def> numGet(xarray<Def> in);
+	xarray<lpDef> numFind(xarray<lpDef> in, u64 num);
+	xarray<lpDef> numGet(xarray<lpDef> in);
 
 private:
 	xstr data;
-	xArray<Def> defLst;
+	xArray<lpDef> defLst;
 };
 

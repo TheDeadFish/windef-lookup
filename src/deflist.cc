@@ -2,16 +2,13 @@
 #include "deflist.h"
 #include "util.h"
 
-DefList::~DefList() {}
+DefList::~DefList() {
+	for(auto* x : defLst) { free(x); } }
 void DefList::close() { pRst(this); }
 
 static
-int compar(const DefList::Def& a, const DefList::Def& b) {
-	return stricmp(a.name, b.name); }
-	
-	
-
-	
+int compar(const DefList::Def*& a, const DefList::Def*& b) {
+	return stricmp(a->name, b->name); }
 
 int DefList::load(cch* file)
 {
@@ -23,11 +20,13 @@ int DefList::load(cch* file)
 	// parse input file
 	for(char* pos = data; *pos;)
 	{
-		cch* name = pos; pos += strlen(pos)+1;
-		cch* val = pos; pos += strlen(pos)+1;
-		cch* eval = pos; pos += strlen(pos)+1;
-		if(*eval == 0) return 2;
-		defLst.push_back(name, val, eval);
+		lpDef def = xCalloc(1);
+		defLst.push_back(def);
+		
+		def->name = pos; pos += strlen(pos)+1;
+		def->value = pos; pos += strlen(pos)+1;
+		def->eval = pos; pos += strlen(pos)+1;
+		if(*def->eval == 0) return 2; def->init();
 		if(*pos == '\n') pos++;
 	}
 	
@@ -37,70 +36,65 @@ int DefList::load(cch* file)
 
 
 static
-int findFn(cch* pkey, const DefList::Def& elem) {
-	return strnicmp(pkey, elem.name, strlen(pkey)); }
+int findFn(cch* pkey, const DefList::lpDef& elem) {
+	return strnicmp(pkey, elem->name, strlen(pkey)); }
 
-xarray<DefList::Def> DefList::find(cch* prefix)
+xarray<DefList::lpDef> DefList::find(cch* prefix)
 {
 	// find matching string
 	if(isNull(prefix)) return defLst;
-	Def* found = bsearch((void*)prefix, defLst.data, defLst.len, findFn);
+	lpDef* found = bsearch((void*)prefix, defLst.data, defLst.len, findFn);
 	if(!found) return {};
 	
 	// get all matches
-	Def* end = found+1;
+	lpDef* end = found+1;
 	while((end < defLst.end())&&(!findFn(prefix, *end))) end++;
 	while((found > defLst.data)&&(!findFn(prefix, found[-1]))) found--;
 	return {found, end};
 }
 
-
-int DefList::Def::getVal(u64& val) const
+void DefList::Def::init()
 {
 	// get string value
 	char* end;
-	val = strtoui64(eval, &end);
-	if(end == NULL) return 0;
+	num = strtoui64(eval, &end);
+	if(end == NULL) return;
 	
 	// check type
 	if(toUpper(*end) == 'U') end++;
-	if(!stricmp(end, "ll")) return 2;
-	if(toUpper(*end) == 'l') end++;
-	val &= 0xFFFFFFFF; return *end ? 0 : 1;
+	if(!stricmp(end, "ll")) { type = 2; goto L1; }
+	if(toUpper(*end) == 'L') end++; if(*end) return;
+	type = 1; num &= 0xFFFFFFFF;
+	L1: pcnt = __builtin_popcountll(num);
 }
 
 bool DefList::Def::cmp(u64 num) const
 {
-	u64 val;
-	u32 type = getVal(val);
 	if(type == 0) return false;
-	if(type != 1) return num == val;
-	return u32(num) == u32(val);
+	if(type != 1) return num == this->num;
+	return u32(num) == u32(this->num);
 }
 
-xarray<DefList::Def> DefList::numFind(xarray<Def> in, u64 num)
+xarray<DefList::lpDef> DefList::numFind(xarray<lpDef> in, u64 num)
 {
-	xarray<Def> ret = {};
-	for(auto& x : in) { 
-		if(x.cmp(num)) ret.push_back(x); }
+	xarray<lpDef> ret = {};
+	for(auto* x : in) { 
+		if(x->cmp(num)) ret.push_back(x); }
 	return ret;
 }
 
 static
-int compar_num(const DefList::Def& a, const DefList::Def& b) 
+int compar_num(const DefList::lpDef& a, const DefList::lpDef& b) 
 {
-	u64 va, vb; a.getVal(va); b.getVal(vb);
-	int pcnt1 = __builtin_popcountll(va);
-	int pcnt2 = __builtin_popcountll(vb);
-	IFRET(pcnt1-pcnt2);
-	if(va < vb) return -1; return (va > vb);	
+	IFRET(a->pcnt-b->pcnt);
+	if(a->num < b->num) return -1; 
+	return (a->num > b->num);
 }
 
-xarray<DefList::Def> DefList::numGet(xarray<Def> in)
+xarray<DefList::lpDef> DefList::numGet(xarray<lpDef> in)
 {
-	xarray<Def> ret = {}; u64 tmp;
-	for(auto& x : in) { 
-		if(x.getVal(tmp)) ret.push_back(x); }
+	xarray<lpDef> ret = {}; u64 tmp;
+	for(auto& x : in) if(x->type) ret.push_back(x); 
 	qsort(ret.data, ret.len, compar_num); 
 	return ret;	
 }
