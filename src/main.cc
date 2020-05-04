@@ -10,6 +10,7 @@ const char progName[] = "windef-lookup";
 static DefList s_defLst;
 static HWND s_hList;
 static bool s_maskDir;
+static char s_valIndex;
 static WndResize s_resize;
 
 
@@ -36,11 +37,23 @@ void mainDlgInit(HWND hwnd, cch* file)
 	loadFile(hwnd, file);
 	
 	s_hList = GetDlgItem(hwnd, IDC_LIST1);
+	ListView_SetExtendedListViewStyle(s_hList, 
+		LVS_EX_GRIDLINES|LVS_EX_FULLROWSELECT);
+	
 	lstView_insColumn(s_hList, 0, 170, "Name");
 	lstView_insColumn(s_hList, 1, 100, "Eval");
 	lstView_insColumn(s_hList, 2, 78, "Raw");
 	ListView_SetColumnWidth(s_hList, 2, LVSCW_AUTOSIZE_USEHEADER);
 	nameEdtChange(hwnd);
+}
+
+void item_select(HWND hwnd)
+{
+	int nSel = listView_getCurSel(s_hList);
+	if((nSel < 0)||(s_valIndex == 2)) return;
+	WCHAR buff[100];
+	lstView_getText(s_hList, nSel, s_valIndex, buff, 100);
+	SetDlgItemTextW(hwnd, IDC_MASK, buff);
 }
 
 void listViewInit(HWND hwnd, xarray<DefList::lpDef> lst)
@@ -54,18 +67,20 @@ void listViewInit(HWND hwnd, xarray<DefList::lpDef> lst)
 		lstView_iosText(s_hList, i, 1, x->eval);
 		lstView_iosText(s_hList, i, 2, x->value);
 	}
-
+	
+	ListView_SetItemState(s_hList, 0, 
+		LVIS_FOCUSED | LVIS_SELECTED, 0xF);
+	
 	SetWindowRedraw(s_hList, TRUE);
+	item_select(hwnd);
 }
 
 void compute_mask(HWND hwnd, xarray<DefList::lpDef>& num, u64 val)
 {	
 	if(s_maskDir) std::reverse(num.data, num.end());
-	auto* wrPos = num.data; 
-	for(auto* x : num) {
-		if((x->num & val)&&(!(x->num & ~val))) {
-			*wrPos = x; wrPos++; }}
-	num.setend(wrPos);
+	if(!val) return; s_valIndex = 2;
+	XARRAY_FILTER(num, if(!((x->num & val)
+		&&(!(x->num & ~val)))) continue);
 	
 	Bstr str; u64 outVal = 0;
 	for(auto* x : num) {
@@ -93,7 +108,7 @@ void nameEdtChange(HWND hwnd)
 	// get value
 	GetDlgItemTextA(hwnd, IDC_VAL, buff, 100);
 	char* end; u64 val = strtoui64(buff, &end);
-	
+	s_valIndex = !buff[0];
 	
 	// handle mask mode
 	SetDlgItemTextA(hwnd, IDC_MASK, "");
@@ -139,6 +154,10 @@ BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ON_CONTROL(EN_CHANGE, IDC_VAL, nameEdtChange(hwnd))
 			
 			
+	  ,)
+		
+		CASE_NOTIFY(
+			ON_LVN_NOTIFY(LVN_ITEMCHANGED, IDC_LIST1, item_select(hwnd))
 	  ,)
 	,)
 }	
