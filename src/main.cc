@@ -75,7 +75,7 @@ void nameEdtChange(HWND hwnd)
 	// prefix search
 	char buff[100];
 	GetDlgItemTextA(hwnd, IDC_NAME, buff, 100);
-	auto list = s_defLst.find(buff);
+	xArray list = s_defLst.find(buff);
 
 	// get value
 	GetDlgItemTextA(hwnd, IDC_VAL, buff, 100);

@@ -12,7 +12,12 @@ struct DefList
 	
 	int load(cch* file);
 	void close();
-	xarray<lpDef> find(cch* prefix);
+	
+	
+	xarray<lpDef> find(char* str);
+	
+	
+	
 	
 	~DefList();
 	
@@ -22,6 +27,7 @@ struct DefList
 	xarray<lpDef> numGet(xarray<lpDef> in);
 
 private:
+	xarray<lpDef> find_(cch* prefix);
 	xstr data;
 	xArray<lpDef> defLst;
 };

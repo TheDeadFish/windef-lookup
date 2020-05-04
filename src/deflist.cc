@@ -39,7 +39,7 @@ static
 int findFn(cch* pkey, const DefList::lpDef& elem) {
 	return strnicmp(pkey, elem->name, strlen(pkey)); }
 
-xarray<DefList::lpDef> DefList::find(cch* prefix)
+xarray<DefList::lpDef> DefList::find_(cch* prefix)
 {
 	// find matching string
 	if(isNull(prefix)) return defLst;
@@ -97,4 +97,21 @@ xarray<DefList::lpDef> DefList::numGet(xarray<lpDef> in)
 	for(auto& x : in) if(x->type) ret.push_back(x); 
 	qsort(ret.data, ret.len, compar_num); 
 	return ret;	
+}
+
+
+xarray<DefList::lpDef> DefList::find(char* str)
+{
+	char* dash = strchr(str, '-');
+	if(dash) *dash = 0;
+	auto ret = find_(str).xdup();
+	
+	if(dash) { int len = dash-str;
+		XARRAY_FILTER(ret, 
+			if(strchr(x->name+len, '_')) 
+				continue;
+		);
+	}
+	
+	return ret;
 }
