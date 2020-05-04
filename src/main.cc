@@ -3,12 +3,14 @@
 #include "resource.h"
 #include "deflist.h"
 #include "util.h"
+#include "resize.h"
 
 const char progName[] = "windef-lookup";
 
 static DefList s_defLst;
 static HWND s_hList;
 static bool s_maskDir;
+static WndResize s_resize;
 
 
 void loadFile(HWND hwnd, cch* file)
@@ -20,6 +22,17 @@ void loadFile(HWND hwnd, cch* file)
 void nameEdtChange(HWND hwnd);
 void mainDlgInit(HWND hwnd, cch* file)
 {
+	s_resize.init(hwnd);
+	s_resize.add(hwnd, IDC_NAME, HOR_BOTH);
+	s_resize.add(hwnd, IDC_VAL, HOR_BOTH);
+	s_resize.add(hwnd, IDC_VAL, HOR_BOTH);
+	s_resize.add(hwnd, IDC_MASK, HOR_BOTH);
+	s_resize.add(hwnd, IDC_NAMECLR, HOR_RIGH);
+	s_resize.add(hwnd, IDC_VALCLR, HOR_RIGH);
+	s_resize.add(hwnd, IDC_MASKMODE, HOR_RIGH);
+	s_resize.add(hwnd, IDC_MASKDIR, HOR_RIGH);
+	s_resize.add(hwnd, IDC_LIST1, HVR_BOTH);
+
 	loadFile(hwnd, file);
 	
 	s_hList = GetDlgItem(hwnd, IDC_LIST1);
@@ -112,6 +125,8 @@ BOOL CALLBACK mainDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	DLGMSG_SWITCH(
 		ON_MESSAGE(WM_INITDIALOG, mainDlgInit(hwnd, (cch*)lParam))
+		ON_MESSAGE(WM_SIZE, s_resize.resize(hwnd, wParam, lParam))
+		
 		CASE_COMMAND(
 			ON_COMMAND(IDCANCEL, EndDialog(hwnd, 0))
 			ON_COMMAND(IDC_NAMECLR, SetDlgItemTextA(hwnd, IDC_NAME, ""))
