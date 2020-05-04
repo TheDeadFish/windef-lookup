@@ -1,6 +1,7 @@
 project(win32-res-lib)
 cmake_minimum_required(VERSION 3.12)
 set( EXECUTABLE_OUTPUT_PATH ../bin)
+add_link_options(-s -Wl,-gc-sections -mwindows)
 
 add_executable(windef-lookup 
 	src/resource.rc
