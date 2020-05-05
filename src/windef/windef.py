@@ -46,7 +46,7 @@ def is_ident(str):
 	return match(str, r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 	
 def is_number(str):
-	return match(str, r"^0x[0-9A-Fa-f]+$|^[0-9]+$")
+	return match(str, r"^(0x[0-9A-Fa-f]+|-?[0-9]+)([uU]?[lL]{0,2})$")
 	
 def is_string(str):
 	return match(str, r"^(L?\"(?:[^\"\\]|\\.)*\")*$|^(\'(?:[^\'\\]|\\.)*\')*$")
@@ -105,7 +105,6 @@ def getMacroList(mList, defFile):
 	
 def evalMacro(x):
 	# skip non-number
-	if x[1] == x[2]: return False
 	x[2] = strip_brace(x[2])
 	if is_string(x[2]): return False;
 	if is_ident(x[2]): return False;
@@ -114,11 +113,11 @@ def evalMacro(x):
 		return;
 	
 	# handle number
-	if is_number(x[2]): return  False;
-	if x[2][-1] == 'l':
-		if is_number(x[2][:-1]):
+	if is_number(x[2]):
+		tmp = x[2].lower()
+		if (tmp[-1] == 'l') and (tmp[-2] not in ['l','u']):
 			x[2] = x[2][:-1]
-			return False
+		return False
 	
 	# preduce source file
 	print x[0]
@@ -139,7 +138,7 @@ def evalAsmValue(push):
 		
 def evalAsmParse2(str, push, call):
 	
-	int_types = {'j':'U', 'l':'l', 'm':'Ul', 'x':'LL', 'y':'ULL'}
+	int_types = {'j':'U', 'm':'Ul', 'x':'LL', 'y':'ULL'}
 
 	# number type
 	if str == None:
